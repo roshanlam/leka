@@ -7,6 +7,12 @@ const bcrypt = require('bcryptjs');
 const { marked } = require('marked');
 const MongoStore = require('connect-mongodb-session')(session);
 const sanitizeHtml = require('sanitize-html');
+const { JSDOM } = require('jsdom');
+const { window } = new JSDOM('');
+const { document } = (new JSDOM('')).window;
+global.document = document;
+
+const DOMPurify = require('dompurify')(window);
 
 const app = express();
 const PORT = 3000;
@@ -76,15 +82,39 @@ app.get('/', async (req, res) => {
     if (req.session.userId) {
       const user = await User.findById(req.session.userId);
       const notes = await Note.find({ user: user._id });
-      res.render('home', { user, notes }); // Pass the 'notes' variable to the view
+
+      // Render Markdown and sanitize HTML for each note
+      const renderedNotes = notes.map(note => {
+        const content = marked(note.content, {
+          sanitize: true,
+          sanitizer: DOMPurify.sanitize,
+          renderer: createCustomRenderer()
+        });
+        return { ...note.toObject(), renderedContent: content };
+      });
+
+      res.render('home', { user, notes: renderedNotes });
     } else {
-      res.render('home', { user: null, notes: [] }); // Provide an empty array if no notes exist
+      res.render('home', { user: null, notes: [] });
     }
   } catch (err) {
     console.error(err);
     res.status(500).send('Internal Server Error');
   }
 });
+
+function createCustomRenderer() {
+  const renderer = new marked.Renderer();
+
+  renderer.image = (href, title, text) => {
+    if (href.startsWith('http://') || href.startsWith('https://')) {
+      return `<img src="${DOMPurify.sanitize(href)}" alt="${DOMPurify.sanitize(text)}"${title ? ` title="${DOMPurify.sanitize(title)}"` : ''}>`;
+    }
+    return `<img src="/images/${DOMPurify.sanitize(href)}" alt="${DOMPurify.sanitize(text)}"${title ? ` title="${DOMPurify.sanitize(title)}"` : ''}>`;
+  };
+
+  return renderer;
+}
 
 app.get('/notes/new', (req, res) => {
   res.render('components/new');
@@ -180,7 +210,7 @@ app.post('/login', async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      return res.status(400).send('Invalid email or password');
+      return res.status(400).redirect('/', { error: 'Invalid email or password' });
     }
 
     req.session.userId = user._id;
