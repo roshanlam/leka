@@ -1,41 +1,20 @@
-// Function to handle viewing a note
-function viewNote(noteId) {
-    // Make an AJAX request to fetch the note content
-    $.ajax({
-      url: `/notes/${noteId}`,
-      type: 'GET',
-      success: function (data) {
-        // Fill the viewNoteModal with the note content
-        $('#viewNoteModal').html(data);
-      },
-      error: function () {
-        alert('Error retrieving note.');
-      }
-    });
-  }
+document.addEventListener('DOMContentLoaded', function() {
+    const unsavedNote = JSON.parse(localStorage.getItem('unsavedNote'));
+    if (unsavedNote) {
+      document.getElementById('title').value = unsavedNote.title;
+      document.getElementById('content').value = unsavedNote.content;
+    }
   
-  // Function to handle editing a note
-  function editNote(noteId) {
-    // Make an AJAX request to fetch the note content
-    $.ajax({
-      url: `/notes/edit/${noteId}`,
-      type: 'GET',
-      success: function (data) {
-        // Fill the editNoteModal with the note content
-        $('#editNoteModal').html(data);
-      },
-      error: function () {
-        alert('Error retrieving note.');
-      }
-    });
-  }
-  function showSignupForm() {
-    document.getElementById("signupForm").style.display = "block";
-    document.getElementById("loginForm").style.display = "none";
-  }
+    // Save note to localStorage when the fields are changed
+    document.getElementById('title').addEventListener('input', saveUnsavedNote);
+    document.getElementById('content').addEventListener('input', saveUnsavedNote);
   
-  function showLoginForm() {
-    document.getElementById("signupForm").style.display = "none";
-    document.getElementById("loginForm").style.display = "block";
-  }
+    function saveUnsavedNote() {
+      const note = {
+        title: document.getElementById('title').value,
+        content: document.getElementById('content').value
+      };
+      localStorage.setItem('unsavedNote', JSON.stringify(note));
+    }
+  });
   

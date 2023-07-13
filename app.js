@@ -10,10 +10,10 @@ const sanitizeHtml = require('sanitize-html');
 const { JSDOM } = require('jsdom');
 const { window } = new JSDOM('');
 const { document } = (new JSDOM('')).window;
+
 global.document = document;
 
 const DOMPurify = require('dompurify')(window);
-
 const app = express();
 const PORT = 3000;
 
@@ -34,12 +34,18 @@ mongoose.connect(dburl, {
   console.error("Error connecting to MongoDB", err);
 });
 
-// TODO: Create a secret key generator method
+const genSecretKey = () => {
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let array = new Uint8Array(32);
+  window.crypto.getRandomValues(array);
+  return Array.from(array, (num) => chars[num % chars.length]).join('');
+}
+
 app.use(
   session({
-    secret: 'Tanvi',
-    resave: false,
-    saveUninitialized: false,
+    secret: genSecretKey(),
+    resave: true,
+    saveUninitialized: true,
     store: store,
   })
 );
@@ -48,6 +54,12 @@ app.set('view engine', 'ejs');
 app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+app.use((req, res, next) => {
+  console.log('Session ID:', req.sessionID);
+  console.log('User ID:', req.session.userId);
+  next();
+});
 
 const User = mongoose.model('User', new mongoose.Schema({
   email: {
@@ -222,12 +234,11 @@ app.post('/login', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  req.session.userId = null;
   res.redirect('/');
 });
 
 app.post('/logout', (req, res) => {
-  req.session.userId = null;
+  req.session.destroy();
   res.redirect('/');
 });
 

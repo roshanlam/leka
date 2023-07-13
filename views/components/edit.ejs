@@ -10,3 +10,29 @@
   </div>
   <button type="submit" class="btn btn-primary">Save</button>
 </form>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+
+<script>
+  const noteId = "<%= note._id %>";
+
+  $('form').on('input', function() {
+    const noteContent = {
+      title: $('#title').val(),
+      content: $('#content').val(),
+    };
+    localStorage.setItem(`unsavedEditNote_${noteId}`, JSON.stringify(noteContent));
+  });
+  
+  $('form').submit(function() {
+    localStorage.removeItem(`unsavedEditNote_${noteId}`);
+  });
+  
+  $(document).ready(function() {
+    const unsavedNote = JSON.parse(localStorage.getItem(`unsavedEditNote_${noteId}`));
+    if (unsavedNote) {
+      $('#title').val(unsavedNote.title);
+      $('#content').val(unsavedNote.content);
+    }
+  });
+  
+</script>
