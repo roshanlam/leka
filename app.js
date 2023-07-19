@@ -1,5 +1,3 @@
-const dburl = "mongodb+srv://leka:ThereLeka2323@cluster0.sbyjh9w.mongodb.net/?retryWrites=true&w=majority";
-
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
@@ -12,6 +10,9 @@ const { window } = new JSDOM('');
 const { document } = (new JSDOM('')).window;
 
 global.document = document;
+
+
+const dburl = require('./db');
 
 const DOMPurify = require('dompurify')(window);
 const app = express();
